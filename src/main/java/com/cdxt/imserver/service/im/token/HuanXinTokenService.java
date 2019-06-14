@@ -1,35 +1,34 @@
 package com.cdxt.imserver.service.im.token;
 
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
+import com.cdxt.imserver.config.HuanXinProperties;
+import com.cdxt.imserver.util.JsonRestUtil;
+import com.google.gson.JsonObject;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestTemplate;
 
 import java.util.HashMap;
 import java.util.Map;
 
-@Service
+@Service("huanXinTokenService")
 public class HuanXinTokenService implements TokenService<String> {
-    @Override
-    public String getToken(String s) {
-        RestTemplate restTemplate = new RestTemplate();
-        HttpHeaders httpHeaders = new HttpHeaders();
-        httpHeaders.setContentType(MediaType.APPLICATION_JSON);
-        httpHeaders.add("Authorization","token");
-        Map<String,String> body = new HashMap<>();
-        body.put("grant_type","client_credentials");
-        body.put("client_id","YXA6iA114Iy6Eem_n8-VGCNdsg");
-        body.put("client_secret","YXA6TMYdPk6fWb92ZGM_jn46L08xUE0");
-        HttpEntity<Map<String,String>> httpEntity = new HttpEntity<>(body,httpHeaders);
-        Map map = restTemplate.postForObject("http://a1.easemob.com/{org_name}/{app_name}/{type}", httpEntity, new HashMap<String,String>().getClass(),"1104190612019372","my-im","token");
-        System.out.println(map);
-        return map.get("access_token").toString();
+
+    private final JsonRestUtil jsonRestUtil;
+
+    private final HuanXinProperties huanXinProperties;
+
+    public HuanXinTokenService(JsonRestUtil jsonRestUtil, HuanXinProperties huanXinProperties) {
+        this.jsonRestUtil = jsonRestUtil;
+        this.huanXinProperties = huanXinProperties;
     }
 
-    public static void main(String[] args) {
-        HuanXinTokenService tokenService = new HuanXinTokenService();
-        String token = tokenService.getToken("123");
-        System.out.println(token);
+    @Override
+    public String getToken(String url) {
+        url = String.join("/",url,"token");
+        Map<String,String> body = new HashMap<>();
+        body.put("grant_type","client_credentials");
+        body.put("client_id",huanXinProperties.getClientId());
+        body.put("client_secret",huanXinProperties.getClientSecret());
+        JsonObject token = jsonRestUtil.postForJsonObject(url, body);
+        return token.get("access_token").getAsString();
     }
+
 }

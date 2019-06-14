@@ -1,26 +1,25 @@
 package com.cdxt.imserver.util;
 
 import com.google.gson.JsonObject;
+import org.apache.commons.lang3.StringUtils;
+import org.springframework.context.annotation.Scope;
 import org.springframework.http.*;
 import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.http.converter.json.GsonHttpMessageConverter;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
+import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.List;
 
-public final class JsonRestUtil {
+@Component()
+@Scope("prototype")
+public class JsonRestUtil {
 
     private final RestTemplate restTemplate;
 
     private final HttpHeaders httpHeaders;
 
-//    public static void main(String[] args) {
-//        JsonRestUtil jsonRestUtil = new JsonRestUtil();
-//        HttpHeaders httpHeaders = jsonRestUtil.getHttpHeaders();
-//        System.out.println(httpHeaders.toString());
-//        httpHeaders.set("Au","hah");
-//    }
     private String basicUrl;
 
     private String token;
@@ -52,19 +51,26 @@ public final class JsonRestUtil {
         httpHeaders.setContentType(MediaType.APPLICATION_JSON_UTF8);
     }
 
+    private void tokenInit() {
+        if (StringUtils.isNotBlank(token)) {
+            httpHeaders.set("Authorization",token);
+        }
+    }
 
-    public HttpHeaders getHttpHeaders() {
-        return httpHeaders;
+    private String urlInit(String url) {
+        url = StringUtils.isNotBlank(url)?String.join("/", basicUrl,url) : url;
+        return url;
     }
 
     public <T> ResponseEntity<T> getForEntity(String url, Class<T> responseType, Object... urlVariables){
+        tokenInit();
+        url = urlInit(url);
         HttpEntity httpEntity = new HttpEntity<>(httpHeaders);
         return restTemplate.exchange(url, HttpMethod.GET, httpEntity, responseType, urlVariables);
     }
 
     public <T> T getForObject(String url,Class<T> responseType,Object... urlVariables){
-        ResponseEntity<T> responseEntity = getForEntity(url, responseType, urlVariables);
-        return responseEntity.getBody();
+        return getForEntity(url, responseType, urlVariables).getBody();
     }
 
     public JsonObject getForJsonObject(String url,Object... urlVariables){
@@ -72,13 +78,14 @@ public final class JsonRestUtil {
     }
 
     public <T> ResponseEntity<T> postForEntity(String url,Object body,Class<T> responseType,Object... urlVariables){
+        tokenInit();
+        url = urlInit(url);
         HttpEntity httpEntity = new HttpEntity<>(body,httpHeaders);
         return restTemplate.postForEntity(url,httpEntity,responseType,urlVariables);
     }
 
     public <T> T postForObject(String url,Object body,Class<T> responseType,Object... urlVariables){
-        HttpEntity httpEntity = new HttpEntity<>(body,httpHeaders);
-        return restTemplate.postForObject(url,httpEntity,responseType,urlVariables);
+        return postForEntity(url,body,responseType,urlVariables).getBody();
     }
 
     public JsonObject postForJsonObject(String url,Object body,Object... urlVariables){
